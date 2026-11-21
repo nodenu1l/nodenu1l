@@ -1,17 +1,45 @@
-<img src="assets/hero.svg" alt="Seoyul Son · 손서율 · composer, sound artist, builds with AI agents" width="100%">
+<img src="assets/hero.svg" alt="Seoyul Son · 손서율 · composer, sound artist, web developer" width="100%">
 
-Composer and sound artist. Not a developer by training: directs AI agents (Claude Code, Codex CLI) to build the tools that sound, teaching and research actually need, rather than writing most of the code by hand. The stack that runs the day stays private: a set of hubs for skills and session memory, agent orchestration, finance, and foreign-language reading.
+Beginning with music-making, the practice has long been concerned with how things pushed beyond the boundaries of normal and abnormal, center and outside, continue to remain. Extending this inquiry across media, it considers how they persist in distorted forms without being completely erased.
 
-<img src="assets/selected-work.svg" alt="Selected work · sound, web" width="100%">
+<img src="assets/music.svg" alt="Music" width="100%">
 
-**〈Dystopia · Dissolved Sounds〉** · a sound-art exhibition · [dissolvedsound.com](https://dissolvedsound.com)<br>
-**[esther-main](https://esther-main.vercel.app)** · the academy's site: vocal, piano, MIDI composition, entrance-exam prep<br>
-**[seoyulson-portfolio](https://github.com/yulflow/seoyulson-portfolio)** · portfolio site source · [live](https://seoyulson-portfolio.vercel.app)
+하수구 · 2024 / 다시 · 2022 / 당신의 계절 · 2022 / Christmas Time · 2021 / 섬 · 2021 / 빗속에서 춤을 · 2021
 
-<img src="assets/stack.svg" alt="Stack · build, direct, make" width="100%">
+[Apple Music](https://music.apple.com/kr/artist/%EC%84%9C%EC%9C%A8/1584760136) · [SoundCloud · demos](https://soundcloud.com/seoyul) · [YouTube](https://www.youtube.com/@%79ulflow)
 
-**Build** · TypeScript, Next.js, React, Tailwind CSS, Supabase, Vercel, Cloudflare<br>
-**Direct** · Claude Code, Codex CLI, MCP servers, Ollama and MLX on local Apple silicon<br>
-**Make** · Logic Pro, Ableton Live, Cubase, Max/MSP, TouchDesigner, three.js, Blender, Figma
+Selected credits in production, composition, arrangement, vocal direction, chorus, mixing, and mastering.
+
+<img src="assets/web.svg" alt="Web" width="100%">
+
+**[obf.kr](https://obf.kr)** · Community platform · 2026<br>
+Next.js · React · TypeScript · Three.js
+
+**[modularhabit.com](https://modularhabit.com)** · Festival website · 2026<br>
+Next.js · React · TypeScript
+
+**[AFTERNODE](https://afternode.co)** · Studio website · 2026<br>
+Next.js 16 · React 19 · Tailwind CSS v4
+
+**[IO](https://io.seoyulson.com/game)** · Interactive sound installation · 2026<br>
+PixiJS · TypeScript · MediaPipe · Howler.js
+
+**Workflow Hub** · Private operations system · 2026 · Private · in use<br>
+Next.js 16 · React 19 · Supabase · MCP
+
+**Lexicon** · Reading and knowledge tool · 2026 · Private · in use<br>
+Next.js 16 · React 19 · Supabase · AI translation
+
+**[Dissolved Sound Archive](https://dissolvedsound.com)** · Exhibition archive · 2026<br>
+React 19 · Vite · TypeScript
+
+<img src="assets/design.svg" alt="Design" width="100%">
+
+**UNFIXED** · Concert identity · 3D · print · 2026<br>
+**DYSTOPIA · Dissolved Sound** · Exhibition identity · 2026<br>
+**Obf : MODULAR HABIT 2026** · Festival identity · 3D · motion · 2026<br>
+**Obf : SYNC** · Concert poster · 2026<br>
+**STUDIO HENGE** · Motion identity · 2025–2026<br>
+**E:STHER MUSIC ACADEMY** · Brand identity · web · 2026
 
 More at **[seoyulson.com](https://seoyulson.com)**.

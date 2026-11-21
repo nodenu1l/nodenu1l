@@ -14,13 +14,14 @@ GitHub은 README 이미지를 camo 프록시로 감싸기 때문에 SVG 안에�
 from __future__ import annotations
 
 import io
-import math
-import random
+import argparse
+from dataclasses import dataclass
 import subprocess
 import urllib.request
 from pathlib import Path
 
 import uharfbuzz as hb
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.misc.transform import Transform
@@ -33,18 +34,17 @@ OUT = ROOT / "assets"
 GF = "https://github.com/google/fonts/raw/main/"
 
 # ---- design tokens (DESIGN.md) ----
-BG = "#111210"
-INK = "#f0eadf"
-INK_DIM = "#b8ac9c"
-INK_FAINT = "#7d756b"
-ACCENT = "#d0a05a"   # amber, 강조 전용
-MINERAL = "#86aaa0"  # 보조 라벨 큐 전용
-HAIR = "rgba(240,234,223,0.14)"
+BG = "#050505"
+INK = "#eeeeec"
+INK_DIM = "#a4a4a2"
+INK_FAINT = "#6c6c6a"
+HAIR = "rgba(238,238,236,0.14)"
+PLANE = "#3a3a39"
 
 # (키, google/fonts 경로, 고정할 가변축)
 FONTS = {
-    "display":   ("ofl/cormorantgaramond/CormorantGaramond%5Bwght%5D.ttf", {"wght": 350}),
-    "italic":    ("ofl/cormorantgaramond/CormorantGaramond-Italic%5Bwght%5D.ttf", {"wght": 350}),
+    "display":   ("ofl/cormorantgaramond/CormorantGaramond%5Bwght%5D.ttf", {"wght": 400}),
+    "italic":    ("ofl/cormorantgaramond/CormorantGaramond-Italic%5Bwght%5D.ttf", {"wght": 400}),
     "mono":      ("ofl/spacemono/SpaceMono-Regular.ttf", None),
     "mono-bold": ("ofl/spacemono/SpaceMono-Bold.ttf", None),
     "body":      ("ofl/inter/Inter%5Bopsz,wght%5D.ttf", {"wght": 300, "opsz": 14}),
@@ -52,6 +52,19 @@ FONTS = {
 }
 
 _loaded: dict[str, tuple] = {}
+
+
+@dataclass
+class TextRun:
+    asset: str
+    text: str
+    baseline: float
+    bounds: tuple[float, float, float, float]
+
+
+RUNS: list[TextRun] = []
+CANVASES: dict[str, tuple[int, int]] = {}
+CURRENT_ASSET = ""
 
 
 def num(v: float) -> str:
@@ -83,7 +96,8 @@ def load(key: str):
     if key in _loaded:
         return _loaded[key]
     _, axes = FONTS[key]
-    cache = FONTDIR / f"{key}.inst.ttf"
+    suffix = "-".join(f"{axis}{value}" for axis, value in (axes or {}).items())
+    cache = FONTDIR / f"{key}{'-' + suffix if suffix else ''}.inst.ttf"
     if not cache.exists():
         tt = TTFont(source_ttf(key))
         if axes:
@@ -127,17 +141,24 @@ def text_path(key: str, text: str, size: float, x: float, y: float,
         x = x - w if anchor == "end" else x - w / 2
 
     parts: list[str] = []
+    bounds = BoundsPen(glyph_set)
     pen_x = x
     for info, pos in zip(buf.glyph_infos, buf.glyph_positions):
+        if info.codepoint == 0:
+            raise ValueError(f"누락 글리프: {text!r} (문자 위치 {info.cluster}, 폰트 {key})")
         name = order[info.codepoint]
         gx = pen_x + pos.x_offset * s
         gy = y - pos.y_offset * s
         pen = SVGPathPen(glyph_set, ntos=num)
-        glyph_set[name].draw(TransformPen(pen, Transform(s, 0, 0, -s, gx, gy)))
+        transform = Transform(s, 0, 0, -s, gx, gy)
+        glyph_set[name].draw(TransformPen(pen, transform))
+        glyph_set[name].draw(TransformPen(bounds, transform))
         d = pen.getCommands()
         if d:
             parts.append(d)
         pen_x += pos.x_advance * s + tracking
+    if bounds.bounds is not None:
+        RUNS.append(TextRun(CURRENT_ASSET, text, y, bounds.bounds))
     return "".join(parts)
 
 
@@ -148,174 +169,131 @@ def t(key: str, text: str, size: float, x: float, y: float, fill: str,
     return f'  <path d="{d}" fill="{fill}"{op}/>\n'
 
 
-# ---------------------------------------------------------------- waveform
-
-def waveform(x0: float, x1: float, y: float, n: int, seed: int) -> str:
-    """양 끝이 잦아드는 파형 막대. 5개 클래스로 나눠 서로 다른 주기로 숨쉰다."""
-    rng = random.Random(seed)
-    classes = "abcde"
-    out = [f'  <g class="wave">\n']
-    step = (x1 - x0) / (n - 1)
-    for i in range(n):
-        px = x0 + i * step
-        u = i / (n - 1)
-        # 양 끝 페이드 + 느린/빠른 두 개의 마디감 + 약간의 요동 = 눈금 아닌 소리
-        env = math.sin(math.pi * u) ** 0.42
-        slow = 0.5 + 0.5 * abs(math.sin(u * math.pi * 2.7 + 0.7))
-        fast = 0.55 + 0.45 * abs(math.sin(u * math.pi * 8.3 + 1.9))
-        amp = (0.7 + 15.5 * slow * fast * rng.uniform(0.6, 1.0)) * env + 0.6
-        c = classes[rng.randrange(5)]
-        delay = -rng.random() * 4.2
-        out.append(
-            f'    <line x1="{num(px)}" y1="{num(y - amp)}" x2="{num(px)}" y2="{num(y + amp)}"'
-            f' class="b p{c}" style="animation-delay:{delay:.2f}s"/>\n'
-        )
-    out.append("  </g>\n")
-    return "".join(out)
-
-
-def rings(items: list[tuple[float, float, float, str]]) -> str:
-    """겹치는 얇은 링. 포트폴리오 모티프."""
-    out = []
-    for cx, cy, r, extra in items:
-        out.append(f'    <circle cx="{num(cx)}" cy="{num(cy)}" r="{num(r)}" fill="none"'
-                   f' stroke="{HAIR}" stroke-width="1"{extra}/>\n')
-    return "".join(out)
-
-
 # ---------------------------------------------------------------- assets
 
 HERO_W, HERO_H = 880, 300
 
 
-def build_hero() -> str:
-    role = "COMPOSER · SOUND ARTIST · BUILDS WITH AI AGENTS"
-    wave_y = 250.0
-
+def build_hero(centered: bool = False) -> str:
+    """사이트의 상단 메뉴와 평면·선 다발·점 열 또는 격자를 옮긴다."""
+    role = "COMPOSER · SOUND ARTIST · WEB DEVELOPER"
     s = [
         f'<svg viewBox="0 0 {HERO_W} {HERO_H}" width="{HERO_W}" height="{HERO_H}"'
         ' xmlns="http://www.w3.org/2000/svg" role="img"'
-        ' aria-label="Seoyul Son 손서율 · composer, sound artist, builds with AI agents">\n',
-        "  <title>Seoyul Son · 손서율</title>\n",
-        "  <style>\n"
-        "    .b { transform-box: fill-box; transform-origin: center; stroke: %s;\n"
-        "         stroke-width: 1.25; stroke-linecap: round; opacity: 0.85; }\n"
-        "    .pa { animation: ka 5.2s ease-in-out infinite; }\n"
-        "    .pb { animation: kb 5.9s ease-in-out infinite; }\n"
-        "    .pc { animation: kc 6.4s ease-in-out infinite; }\n"
-        "    .pd { animation: kd 7.1s ease-in-out infinite; }\n"
-        "    .pe { animation: ke 7.8s ease-in-out infinite; }\n"
-        "    .head { animation: sweep 18s cubic-bezier(0.2,0.8,0.2,1) infinite; }\n"
-        "    .spin { transform-origin: 777px 150px; animation: spin 120s linear infinite; }\n"
-        "    @keyframes ka { 0%%,100%% { transform: scaleY(0.86); } 45%% { transform: scaleY(1.14); } }\n"
-        "    @keyframes kb { 0%%,100%% { transform: scaleY(0.8);  } 55%% { transform: scaleY(1.2);  } }\n"
-        "    @keyframes kc { 0%%,100%% { transform: scaleY(0.9);  } 50%% { transform: scaleY(1.1);  } }\n"
-        "    @keyframes kd { 0%%,100%% { transform: scaleY(0.83); } 60%% { transform: scaleY(1.17); } }\n"
-        "    @keyframes ke { 0%%,100%% { transform: scaleY(0.88); } 40%% { transform: scaleY(1.12); } }\n"
-        "    @keyframes spin { to { transform: rotate(360deg); } }\n"
-        "    @keyframes sweep {\n"
-        "      0%%   { transform: translateX(0px);   opacity: 0; }\n"
-        "      8%%   { opacity: 1; }\n"
-        "      92%%  { opacity: 1; }\n"
-        "      100%% { transform: translateX(784px); opacity: 0; }\n"
-        "    }\n"
-        "    @media (prefers-reduced-motion: reduce) {\n"
-        "      .pa, .pb, .pc, .pd, .pe, .head, .spin { animation: none; }\n"
-        "      .head { opacity: 1; }\n"
-        "    }\n"
-        "  </style>\n" % INK_FAINT,
-        f'  <clipPath id="frame"><rect x="0" y="0" width="{HERO_W}" height="{HERO_H}"/></clipPath>\n',
-        f'  <rect x="0" y="0" width="{HERO_W}" height="{HERO_H}" fill="{BG}"/>\n',
-        '  <g clip-path="url(#frame)">\n',
-        rings([(742, 150, 118, ""), (812, 150, 118, ""),
-               (777, 150, 62, ' stroke-dasharray="1 7" class="spin"')]),
-        f'    <circle cx="777" cy="37.3" r="2.4" fill="{ACCENT}"/>\n',
-        "  </g>\n",
+        ' aria-label="Seoyul Son 손서율 · composer, sound artist, web developer">\n',
+        '  <title>Seoyul Son · 손서율</title>\n',
+        f'  <rect width="{HERO_W}" height="{HERO_H}" fill="{BG}"/>\n',
     ]
+    if centered:
+        s.append(f'  <g stroke="{HAIR}" stroke-width="0.5">\n')
+        for x in range(40, HERO_W, 40):
+            s.append(f'    <line x1="{x}" y1="65" x2="{x}" y2="276"/>\n')
+        for y in range(76, 277, 40):
+            s.append(f'    <line x1="24" y1="{y}" x2="856" y2="{y}"/>\n')
+        s.append('  </g>\n')
+    else:
+        s.extend([
+            '  <style>\n'
+            '    .bundle { animation: breathe 14s ease-in-out infinite; }\n'
+            '    @keyframes breathe { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }\n'
+            '    @media (prefers-reduced-motion: reduce) { .bundle { animation: none; } }\n'
+            '  </style>\n',
+            f'  <rect x="686" y="100" width="146" height="132" fill="{PLANE}"/>\n',
+            f'  <g class="bundle" stroke="{HAIR}" stroke-width="1">\n',
+        ])
+        for x in range(646, 807, 8):
+            s.append(f'    <line x1="{x}" y1="83" x2="{x}" y2="256"/>\n')
+        s.append('  </g>\n')
+        for x in range(650, 833, 14):
+            s.append(f'  <circle cx="{x}" cy="268" r="1.25" fill="{INK_FAINT}"/>\n')
 
-    # 이름
-    s.append(t("display", "Seoyul Son", 92, 46, 152, INK))
-    name_w = measure("display", "Seoyul Son", 92)
-    sep = 46 + name_w + 34
-    s.append(f'  <line x1="{num(sep)}" y1="112" x2="{num(sep)}" y2="152" stroke="{HAIR}" stroke-width="1"/>\n')
-    s.append(t("ko", "손서율", 27, sep + 26, 149, INK_DIM))
-
-    # 역할 행
-    s.append(t("mono", role, 13.5, 48, 199, INK_DIM, tracking=3.2))
-
-    # 파형 + 플레이헤드
-    s.append(f'  <line x1="48" y1="{num(wave_y)}" x2="832" y2="{num(wave_y)}" stroke="{HAIR}" stroke-width="1"/>\n')
-    s.append(waveform(48, 832, wave_y, 96, seed=20260911))
-    s.append(
-        f'  <g class="head">\n'
-        f'    <line x1="48" y1="{num(wave_y - 26)}" x2="48" y2="{num(wave_y + 26)}"'
-        f' stroke="{ACCENT}" stroke-width="1" opacity="0.32"/>\n'
-        f'    <circle cx="48" cy="{num(wave_y)}" r="2.6" fill="{ACCENT}"/>\n'
-        f"  </g>\n"
-    )
-    s.append(f'  <rect x="0.5" y="0.5" width="{HERO_W - 1}" height="{HERO_H - 1}" fill="none"'
-             f' stroke="{HAIR}" stroke-width="1"/>\n')
+    s.append(t("mono", "SEOYUL SON", 11, 32, 35, INK))
+    s.append(t("mono", "ABOUT  MUSIC  WEB  DESIGN  PHOTOGRAPHY", 10, 848, 35,
+               INK_FAINT, anchor="end"))
+    s.append(f'  <line x1="24" y1="57.5" x2="856" y2="57.5" stroke="{HAIR}" stroke-width="1"/>\n')
+    if centered:
+        s.append(t("display", "Seoyul Son", 112, 440, 173, INK, anchor="middle"))
+        s.append(t("ko", "손서율", 23, 440, 215, INK_DIM, anchor="middle"))
+        s.append(t("mono", role, 11, 440, 254, INK_DIM, anchor="middle"))
+    else:
+        s.append(t("display", "Seoyul Son", 92, 32, 168, INK))
+        name_end = 32 + measure("display", "Seoyul Son", 92)
+        s.append(t("ko", "손서율", 27, name_end + 24, 166, INK_DIM))
+        s.append(t("mono", role, 12, 34, 213, INK_DIM))
     s.append("</svg>\n")
     return "".join(s)
 
 
-SEC_W, SEC_H = 880, 34
+SEC_W, SEC_H = 880, 40
 
 
 def build_section(title: str, right: list[tuple[str, str]], label: str) -> str:
-    """본문 열 위에 얹는 얇은 구분선. 배경 없이 양쪽 테마에서 읽히는 중간 회색만 쓴다."""
-    base = 22.0
+    """투명 배경의 섹션 머리글을 양쪽 테마에서 읽히는 회색으로 쓴다."""
+    base = 26.0
     s = [
         f'<svg viewBox="0 0 {SEC_W} {SEC_H}" width="{SEC_W}" height="{SEC_H}"'
         f' xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{label}">\n',
         f"  <title>{label}</title>\n",
+        t("mono", title, 13.5, 32, base, INK_FAINT),
     ]
-    s.append(f'  <rect x="0" y="{num(base - 9.5)}" width="4" height="4" fill="{INK_FAINT}"/>\n')
-    s.append(t("mono", title, 13.5, 14, base, INK_FAINT, tracking=3.2))
-    left_end = 14 + measure("mono", title, 13.5, 3.2)
-
-    right_w = 0.0
-    if right:
-        sizes = {"ko": 13.0, "mono": 12.5}
-        widths = [measure(k, txt, sizes[k], 2.4 if k == "mono" else 0.0) for k, txt in right]
-        right_w = sum(widths) + 6 * (len(right) - 1)
-        rx = SEC_W - right_w
-        for (k, txt), w in zip(right, widths):
-            s.append(t(k, txt, sizes[k], rx, base, INK_FAINT,
-                       tracking=2.4 if k == "mono" else 0.0))
-            rx += w + 6
-
-    rule_x0 = left_end + 18
-    rule_x1 = SEC_W - right_w - (18 if right else 0)
-    if rule_x1 > rule_x0 + 20:
-        s.append(f'  <line x1="{num(rule_x0)}" y1="17.5" x2="{num(rule_x1)}" y2="17.5"'
-                 f' stroke="{INK_FAINT}" stroke-width="1" opacity="0.34"/>\n')
+    left_end = 32 + measure("mono", title, 13.5)
+    right_w = sum(measure(k, txt, 11) for k, txt in right) + 6 * max(len(right) - 1, 0)
+    rx = SEC_W - 32 - right_w
+    for k, txt in right:
+        s.append(t(k, txt, 11, rx, base, INK_FAINT))
+        rx += measure(k, txt, 11) + 6
+    rule_end = SEC_W - 32 - right_w - (18 if right else 0)
+    s.append(f'  <line x1="{num(left_end + 18)}" y1="21.5" x2="{num(rule_end)}" y2="21.5"'
+             f' stroke="{INK_FAINT}" stroke-width="1" opacity="0.34"/>\n')
     s.append("</svg>\n")
     return "".join(s)
 
 
-CLOSE_W, CLOSE_H = 880, 152
+def check_layout() -> bool:
+    """실제 윤곽선의 네 변과 같은 기준선의 글자 겹침을 검사한다."""
+    errors = []
+    for run in RUNS:
+        left, top, right, bottom = run.bounds
+        width, height = CANVASES[run.asset]
+        print(f"{run.asset}: {run.text!r} left={left:.2f} right={right:.2f}")
+        if left < 24 or right > width - 24 or top < 0 or bottom > height:
+            errors.append(f"{run.asset}: 캔버스 여백 이탈 {run.text!r}")
+    for i, run in enumerate(RUNS):
+        for other in RUNS[i + 1:]:
+            if run.asset == other.asset and abs(run.baseline - other.baseline) < 0.01:
+                if min(run.bounds[2], other.bounds[2]) > max(run.bounds[0], other.bounds[0]):
+                    errors.append(f"{run.asset}: 같은 기준선 겹침 {run.text!r}, {other.text!r}")
+    for error in errors:
+        print(f"FAIL: {error}")
+    print(f"{'FAIL' if errors else 'PASS'}: {len(RUNS)} text runs, {len(CANVASES)} canvases, {len(errors)} errors")
+    return not errors
 
 
 def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
-    files = {
-        "hero.svg": build_hero(),
-        "selected-work.svg": build_section(
-            "SELECTED WORK", [("mono", "SOUND · WEB")],
-            "Selected work · sound, teaching, research"),
-        "stack.svg": build_section(
-            "STACK", [("mono", "BUILD · DIRECT · MAKE")],
-            "Stack · build, direct, make"),
+    global CURRENT_ASSET
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true", help="파일을 쓰지 않고 글자 경계를 검사한다")
+    args = parser.parse_args()
+    RUNS.clear()
+    CANVASES.clear()
+    builders = {
+        "hero.svg": (lambda: build_hero(), HERO_W, HERO_H),
+        "hero-b.svg": (lambda: build_hero(centered=True), HERO_W, HERO_H),
+        "music.svg": (lambda: build_section("MUSIC", [], "Music"), SEC_W, SEC_H),
+        "web.svg": (lambda: build_section("WEB", [], "Web"), SEC_W, SEC_H),
+        "design.svg": (lambda: build_section("DESIGN", [], "Design"), SEC_W, SEC_H),
     }
-    total = 0
+    files = {}
+    for name, (builder, width, height) in builders.items():
+        CURRENT_ASSET = name
+        CANVASES[name] = (width, height)
+        files[name] = builder()
+    if args.check:
+        raise SystemExit(0 if check_layout() else 1)
+    OUT.mkdir(parents=True, exist_ok=True)
     for name, body in files.items():
-        p = OUT / name
-        p.write_text(body, encoding="utf-8")
-        size = p.stat().st_size
-        total += size
-        print(f"{name:16} {size / 1024:7.1f} KB")
-    print(f"{'total':16} {total / 1024:7.1f} KB")
+        (OUT / name).write_text(body, encoding="utf-8")
+        print(f"{name:16} {len(body.encode()) / 1024:7.1f} KB")
 
 
 if __name__ == "__main__":
