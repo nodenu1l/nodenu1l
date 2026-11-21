@@ -6,7 +6,7 @@ Beginning with music-making, the practice has long been concerned with how thing
 
 하수구 · 2024 / 다시 · 2022 / 당신의 계절 · 2022 / Christmas Time · 2021 / 섬 · 2021 / 빗속에서 춤을 · 2021
 
-[Apple Music](https://music.apple.com/kr/artist/%EC%84%9C%EC%9C%A8/1584760136) · [SoundCloud · demos](https://soundcloud.com/seoyul) · [YouTube](https://www.youtube.com/@%79ulflow)
+[Apple Music](https://music.apple.com/kr/artist/%EC%84%9C%EC%9C%A8/1584760136) · [SoundCloud · demos](https://soundcloud.com/seoyul) · [YouTube](https://www.youtube.com/@yulflow)
 
 Selected credits in production, composition, arrangement, vocal direction, chorus, mixing, and mastering.
 
@@ -24,11 +24,8 @@ Next.js 16 · React 19 · Tailwind CSS v4
 **[IO](https://io.seoyulson.com/game)** · Interactive sound installation · 2026<br>
 PixiJS · TypeScript · MediaPipe · Howler.js
 
-**Workflow Hub** · Private operations system · 2026 · Private · in use<br>
-Next.js 16 · React 19 · Supabase · MCP
-
 **Lexicon** · Reading and knowledge tool · 2026 · Private · in use<br>
-Next.js 16 · React 19 · Supabase · AI translation
+Next.js 16 · React 19 · Supabase
 
 **[Dissolved Sound Archive](https://dissolvedsound.com)** · Exhibition archive · 2026<br>
 React 19 · Vite · TypeScript
