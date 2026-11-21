@@ -1,4 +1,4 @@
-<img src="assets/hero.svg" alt="Seoyul Son · 손서율 · composer, sound artist, web developer" width="100%">
+<img src="assets/hero.svg" alt="Seoyul Son · composer, sound artist, web developer" width="100%">
 
 Beginning with music-making, the practice has long been concerned with how things pushed beyond the boundaries of normal and abnormal, center and outside, continue to remain. Extending this inquiry across media, it considers how they persist in distorted forms without being completely erased.
 
