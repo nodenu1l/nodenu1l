@@ -171,11 +171,11 @@ def t(key: str, text: str, size: float, x: float, y: float, fill: str,
 
 # ---------------------------------------------------------------- assets
 
-HERO_W, HERO_H = 880, 300
+HERO_W, HERO_H = 880, 254
 
 
 def build_hero(centered: bool = False) -> str:
-    """사이트의 상단 메뉴와 평면·선 다발·점 열 또는 격자를 옮긴다."""
+    """사이트의 평면·선 다발·점 열 또는 격자를 옮긴다."""
     role = "COMPOSER · SOUND ARTIST · WEB DEVELOPER"
     s = [
         f'<svg viewBox="0 0 {HERO_W} {HERO_H}" width="{HERO_W}" height="{HERO_H}"'
@@ -187,8 +187,8 @@ def build_hero(centered: bool = False) -> str:
     if centered:
         s.append(f'  <g stroke="{HAIR}" stroke-width="0.5">\n')
         for x in range(40, HERO_W, 40):
-            s.append(f'    <line x1="{x}" y1="65" x2="{x}" y2="276"/>\n')
-        for y in range(76, 277, 40):
+            s.append(f'    <line x1="{x}" y1="19" x2="{x}" y2="230"/>\n')
+        for y in range(30, 231, 40):
             s.append(f'    <line x1="24" y1="{y}" x2="856" y2="{y}"/>\n')
         s.append('  </g>\n')
     else:
@@ -198,28 +198,24 @@ def build_hero(centered: bool = False) -> str:
             '    @keyframes breathe { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }\n'
             '    @media (prefers-reduced-motion: reduce) { .bundle { animation: none; } }\n'
             '  </style>\n',
-            f'  <rect x="686" y="100" width="146" height="132" fill="{PLANE}"/>\n',
+            f'  <rect x="686" y="54" width="146" height="132" fill="{PLANE}"/>\n',
             f'  <g class="bundle" stroke="{HAIR}" stroke-width="1">\n',
         ])
         for x in range(646, 807, 8):
-            s.append(f'    <line x1="{x}" y1="83" x2="{x}" y2="256"/>\n')
+            s.append(f'    <line x1="{x}" y1="37" x2="{x}" y2="210"/>\n')
         s.append('  </g>\n')
         for x in range(650, 833, 14):
-            s.append(f'  <circle cx="{x}" cy="268" r="1.25" fill="{INK_FAINT}"/>\n')
+            s.append(f'  <circle cx="{x}" cy="222" r="1.25" fill="{INK_FAINT}"/>\n')
 
-    s.append(t("mono", "SEOYUL SON", 11, 32, 35, INK))
-    s.append(t("mono", "ABOUT  MUSIC  WEB  DESIGN  PHOTOGRAPHY", 10, 848, 35,
-               INK_FAINT, anchor="end"))
-    s.append(f'  <line x1="24" y1="57.5" x2="856" y2="57.5" stroke="{HAIR}" stroke-width="1"/>\n')
     if centered:
-        s.append(t("display", "Seoyul Son", 112, 440, 173, INK, anchor="middle"))
-        s.append(t("ko", "손서율", 23, 440, 215, INK_DIM, anchor="middle"))
-        s.append(t("mono", role, 11, 440, 254, INK_DIM, anchor="middle"))
+        s.append(t("display", "Seoyul Son", 112, 440, 127, INK, anchor="middle"))
+        s.append(t("ko", "손서율", 23, 440, 169, INK_DIM, anchor="middle"))
+        s.append(t("mono", role, 11, 440, 208, INK_DIM, anchor="middle"))
     else:
-        s.append(t("display", "Seoyul Son", 92, 32, 168, INK))
+        s.append(t("display", "Seoyul Son", 92, 32, 136, INK))
         name_end = 32 + measure("display", "Seoyul Son", 92)
-        s.append(t("ko", "손서율", 27, name_end + 24, 166, INK_DIM))
-        s.append(t("mono", role, 12, 34, 213, INK_DIM))
+        s.append(t("ko", "손서율", 27, name_end + 24, 134, INK_DIM))
+        s.append(t("mono", role, 12, 34, 181, INK_DIM))
     s.append("</svg>\n")
     return "".join(s)
 
@@ -278,7 +274,6 @@ def main() -> None:
     CANVASES.clear()
     builders = {
         "hero.svg": (lambda: build_hero(), HERO_W, HERO_H),
-        "hero-b.svg": (lambda: build_hero(centered=True), HERO_W, HERO_H),
         "music.svg": (lambda: build_section("MUSIC", [], "Music"), SEC_W, SEC_H),
         "web.svg": (lambda: build_section("WEB", [], "Web"), SEC_W, SEC_H),
         "design.svg": (lambda: build_section("DESIGN", [], "Design"), SEC_W, SEC_H),

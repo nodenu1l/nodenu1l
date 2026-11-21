@@ -2,3 +2,4 @@
 scripts/fonts/
 
 preview/
+__pycache__/
