@@ -271,7 +271,6 @@ def main() -> None:
     CANVASES.clear()
     builders = {
         "hero.svg": (lambda: build_hero(), HERO_W, HERO_H),
-        "music.svg": (lambda: build_section("MUSIC", [], "Music"), SEC_W, SEC_H),
         "web.svg": (lambda: build_section("WEB", [], "Web"), SEC_W, SEC_H),
         "design.svg": (lambda: build_section("DESIGN", [], "Design"), SEC_W, SEC_H),
     }
