@@ -180,8 +180,8 @@ def build_hero(centered: bool = False) -> str:
     s = [
         f'<svg viewBox="0 0 {HERO_W} {HERO_H}" width="{HERO_W}" height="{HERO_H}"'
         ' xmlns="http://www.w3.org/2000/svg" role="img"'
-        ' aria-label="Seoyul Son 손서율 · composer, sound artist, web developer">\n',
-        '  <title>Seoyul Son · 손서율</title>\n',
+        ' aria-label="Seoyul Son · composer, sound artist, web developer">\n',
+        '  <title>Seoyul Son</title>\n',
         f'  <rect width="{HERO_W}" height="{HERO_H}" fill="{BG}"/>\n',
     ]
     if centered:
@@ -209,12 +209,9 @@ def build_hero(centered: bool = False) -> str:
 
     if centered:
         s.append(t("display", "Seoyul Son", 112, 440, 127, INK, anchor="middle"))
-        s.append(t("ko", "손서율", 23, 440, 169, INK_DIM, anchor="middle"))
         s.append(t("mono", role, 11, 440, 208, INK_DIM, anchor="middle"))
     else:
         s.append(t("display", "Seoyul Son", 92, 32, 136, INK))
-        name_end = 32 + measure("display", "Seoyul Son", 92)
-        s.append(t("ko", "손서율", 27, name_end + 24, 134, INK_DIM))
         s.append(t("mono", role, 12, 34, 181, INK_DIM))
     s.append("</svg>\n")
     return "".join(s)
