@@ -194,9 +194,14 @@ def build_hero(centered: bool = False) -> str:
     else:
         s.extend([
             '  <style>\n'
-            '    .bundle { animation: breathe 14s ease-in-out infinite; }\n'
+            '    .bundle { animation: breathe 14s ease-in-out infinite, drift 18s ease-in-out infinite; }\n'
+            '    .dot { animation: playhead 8s linear infinite; }\n'
             '    @keyframes breathe { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }\n'
-            '    @media (prefers-reduced-motion: reduce) { .bundle { animation: none; } }\n'
+            '    @keyframes drift { 0%,100% { transform: translateX(0); } '
+            '25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }\n'
+            f'    @keyframes playhead {{ 0%,6.25%,100% {{ fill: {INK_FAINT}; }} '
+            f'3.125% {{ fill: {INK}; }} }}\n'
+            '    @media (prefers-reduced-motion: reduce) { .bundle, .dot { animation: none; } }\n'
             '  </style>\n',
             f'  <rect x="686" y="54" width="146" height="132" fill="{PLANE}"/>\n',
             f'  <g class="bundle" stroke="{HAIR}" stroke-width="1">\n',
@@ -204,8 +209,9 @@ def build_hero(centered: bool = False) -> str:
         for x in range(646, 807, 8):
             s.append(f'    <line x1="{x}" y1="37" x2="{x}" y2="210"/>\n')
         s.append('  </g>\n')
-        for x in range(650, 833, 14):
-            s.append(f'  <circle cx="{x}" cy="222" r="1.25" fill="{INK_FAINT}"/>\n')
+        for index, x in enumerate(range(650, 833, 14)):
+            s.append(f'  <circle class="dot" cx="{x}" cy="222" r="1.25" fill="{INK_FAINT}" '
+                     f'style="animation-delay: {num(index * 0.5)}s"/>\n')
 
     if centered:
         s.append(t("display", "Seoyul Son", 112, 440, 127, INK, anchor="middle"))
